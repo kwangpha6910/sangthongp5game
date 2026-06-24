@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สังข์ทอง ประลองปัญญา (Epic Edition)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;700&family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --red-glow: #ff0055;
+            --blue-glow: #00eeff;
+            --gold-glow: #ffaa00;
+            --bg-dark: #0a0a1a;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: radial-gradient(circle at 50% 50%, #1a1a3a 0%, var(--bg-dark) 100%);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            color: white; user-select: none; min-height: 100vh; overflow: hidden;
+        }
+
+        /* เอฟเฟกต์ดาวระยิบระยับพื้นหลัง */
+        .stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: transparent; animation: twinkle 5s infinite alternate; }
+        .stars::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(white 1px, transparent 1px); background-size: 50px 50px; opacity: 0.1; }
+        @keyframes twinkle { 0% { opacity: 0.3; } 100% { opacity: 0.8; transform: scale(1.05); } }
+
+        h1 {
+            font-family: 'Mali', cursive; font-size: 60px; margin: 10px 0 30px;
+            background: linear-gradient(to right, #ffd700, #ff8c00);
+            -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); text-align: center;
+        }
+
+        /* แผงคะแนน E-Sports Style */
+        .scoreboard { display: flex; width: 100%; max-width: 1000px; justify-content: space-between; margin-bottom: 30px; z-index: 10; }
+        
+        .team-box {
+            flex: 1; padding: 20px; text-align: center; border-radius: 20px;
+            font-size: 32px; font-weight: bold; background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: 0 15px;
+        }
+
+        .team-box span { font-size: 70px; display: block; margin-top: 10px; font-family: 'Mali', cursive; }
+
+        .team-red { color: #ff4d4d; text-shadow: 0 0 10px var(--red-glow); }
+        .team-blue { color: #4da6ff; text-shadow: 0 0 10px var(--blue-glow); }
+
+        .active-red { border-color: var(--red-glow); box-shadow: 0 0 30px rgba(255, 0, 85, 0.4), inset 0 0 20px rgba(255, 0, 85, 0.2); transform: scale(1.1); z-index: 5; }
+        .active-blue { border-color: var(--blue-glow); box-shadow: 0 0 30px rgba(0, 238, 255, 0.4), inset 0 0 20px rgba(0, 238, 255, 0.2); transform: scale(1.1); z-index: 5; }
+
+        /* กระดานเกม 3D Flip Cards */
+        .game-board {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            width: 100%; max-width: 900px; z-index: 10;
+        }
+
+        .card-container {
+            perspective: 1000px; width: 100%; height: 140px; cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d;
+        }
+
+        .card-container:hover .card-inner:not(.is-flipped) { transform: scale(1.05) rotateX(5deg) rotateY(5deg); }
+        .card-container.opened .card-inner { transform: rotateY(180deg); }
+
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            border-radius: 20px; display: flex; justify-content: center; align-items: center;
+            font-size: 60px; font-family: 'Mali', cursive;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .card-back {
+            background: radial-gradient(circle, #ffeaa7, #fdcb6e); color: #2d3436;
+            transform: rotateY(180deg); box-shadow: 0 0 30px rgba(253, 203, 110, 0.5);
+            border: 4px solid #fff;
+        }
+
+        /* Glassmorphism Modal สำหรับคำถาม */
+        #modal-overlay, #alert-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); z-index: 100;
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+        }
+
+        .modal-box {
+            background: linear-gradient(135deg, rgba(20,20,40,0.9), rgba(10,10,20,0.9));
+            width: 90%; max-width: 900px; padding: 50px; border-radius: 30px; text-align: center;
+            border: 2px solid var(--gold-glow); box-shadow: 0 0 50px rgba(255, 170, 0, 0.3);
+            transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-icon { font-size: 100px; margin: 0; filter: drop-shadow(0 0 20px rgba(255,255,255,0.5)); }
+        .modal-title { font-family: 'Mali', cursive; font-size: 50px; margin: 15px 0; color: #f1c40f; text-shadow: 0 0 15px #f1c40f; }
+        .modal-question { font-size: 36px; line-height: 1.5; margin-bottom: 40px; color: #ecf0f1; }
+
+        .btn-option {
+            display: block; width: 100%; padding: 25px; margin: 20px 0;
+            font-size: 30px; font-family: 'Prompt', sans-serif; cursor: pointer;
+            background: rgba(255, 255, 255, 0.05); color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 20px;
+            transition: all 0.2s; text-align: left;
+        }
+        .btn-option:hover { background: rgba(0, 238, 255, 0.2); border-color: var(--blue-glow); box-shadow: 0 0 20px rgba(0,238,255,0.3); transform: translateX(10px); }
+
+        /* Alert Box */
+        .alert-box {
+            background: rgba(10, 10, 10, 0.95); padding: 60px; border-radius: 40px; text-align: center;
+            transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .alert-icon { font-size: 120px; animation: bounce 1s infinite alternate; }
+        .alert-text { font-size: 50px; font-family: 'Mali', cursive; margin: 30px 0; color: white; text-shadow: 0 0 10px white; }
+        .btn-close { font-size: 28px; padding: 20px 50px; background: linear-gradient(to right, #00b09b, #96c93d); color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px rgba(150,201,61,0.5); transition: 0.2s; }
+        .btn-close:hover { transform: scale(1.1); }
+
+        /* อนิเมชันเสริม */
+        .show-modal { opacity: 1 !important; display: flex !important; }
+        .show-modal .modal-box, .show-modal .alert-box { transform: scale(1); }
+        
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-15px, 10px) rotate(-2deg); }
+            20%, 40%, 60%, 80% { transform: translate(15px, -10px) rotate(2deg); }
+        }
+        .shake-screen { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; box-shadow: inset 0 0 150px rgba(255,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <h1>✨ สังข์ทอง ประลองปัญญา ✨</h1>
+
+    <div class="scoreboard">
+        <div class="team-box team-red active-red" id="box-red">
+            🔴 ทีมสีแดง
+            <span id="score-red">0</span>
+        </div>
+        <div class="team-box team-blue" id="box-blue">
+            🔵 ทีมสีน้ำเงิน
+            <span id="score-blue">0</span>
+        </div>
+    </div>
+
+    <div class="game-board" id="board"></div>
+
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-icon" id="q-icon">❓</div>
+            <h2 class="modal-title" id="q-title">คำถาม!</h2>
+            <div class="modal-question" id="q-text">ข้อความคำถาม</div>
+            <div id="q-options"></div>
+        </div>
+    </div>
+
+    <div id="alert-overlay">
+        <div class="alert-box" id="alert-box">
+            <div class="alert-icon" id="alert-icon">⭐</div>
+            <div class="alert-text" id="alert-text">โชคดีรับ 1 คะแนน!</div>
+            <button class="btn-close" onclick="closeAlert()">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูล 16 ป้าย (เนื้อหา ป.5 กำเนิดพระสังข์)
+        const cardsData = [
+            { type: "q", icon: "🐓", title: "ไก่ป่า", q: "เมื่อพระมารดาไม่อยู่ พระสังข์ออกจากหอยมาทำสิ่งใดกับฝูงไก่ป่า?", options: ["จับมากินเป็นอาหาร", "ไล่ไม่ให้มากินข้าวฟ่าง", "เอามาเลี้ยงเป็นเพื่อนเล่น"], ans: 1 },
+            { type: "q", icon: "🧹", title: "ไม้กวาด", q: "พระสังข์ช่วยพระนางจันท์เทวีทำสิ่งใดในกระท่อม?", options: ["ปัดกวาดเช็ดถู หุงหาอาหาร", "ทอผ้าและตัดเสื้อผ้า", "สร้างกระท่อมหลังใหม่"], ans: 0 },
+            { type: "q", icon: "🪵", title: "ไม้ทุบหอย", q: "พระมารดาใช้อุบายใดทำลายหอยสังข์?", options: ["นำไปเผาไฟ", "หลอกให้ตายายเอาไปทิ้งแม่น้ำ", "แอบซุ่มดูแล้วเอาไม้ทุบให้แตก"], ans: 2 },
+            { type: "q", icon: "🐚", title: "หอยสังข์", q: "ทำไมตอนแรกพระสังข์ถึงไม่ยอมออกจากเปลือกหอย?", options: ["สงสารแม่ กลัวแม่ตกใจเสียใจ", "ขี้อาย ไม่กล้าเจอผู้คน", "เป็นคำสาปของเทวดา"], ans: 0 },
+            { type: "q", icon: "👵", title: "ตายาย", q: "ตายายที่ให้พระนางจันท์เทวีอาศัยอยู่ด้วยในป่า มีอาชีพอะไร?", options: ["ทำนาปลูกข้าว", "หาของป่า ปลูกพืชผัก", "ล่าสัตว์ไปขายในเมือง"], ans: 1 },
+            { type: "q", icon: "👸", title: "พระมารดา", q: "พระมารดาของพระสังข์ มีพระนามว่าอะไร?", options: ["พระนางมัทรี", "พระนางจันท์เทวี", "พระนางรจนา"], ans: 1 },
+            { type: "bonus", icon: "⭐", text: "เจอของล้ำค่า!<br>รับฟรี 1 คะแนน" },
+            { type: "bonus", icon: "💎", text: "เจอเพชรเม็ดงาม!<br>รับฟรี 1 คะแนน" },
+            { type: "bomb", icon: "💣", text: "ตู้มมม!! ระเบิด!<br>ไม่ได้คะแนนแถมเสียเทิร์น" },
+            { type: "bomb", icon: "🐍", text: "ฟ่อออ!! เจองูพิษ!<br>ไม่ได้คะแนนแถมเสียเทิร์น" },
+            { type: "empty", icon: "❌", text: "ว่างเปล่า...<br>ไม่มีอะไรเกิดขึ้น" },
+            { type: "empty", icon: "❌", text: "ว่างเปล่า...<br>ไม่มีอะไรเกิดขึ้น" },
+            { type: "empty", icon: "💨", text: "เจอแต่สายลม...<br>ไม่มีอะไรเกิดขึ้น" },
+            { type: "empty", icon: "💨", text: "เจอแต่สายลม...<br>ไม่มีอะไรเกิดขึ้น" },
+            { type: "empty", icon: "🍂", text: "เจอใบไม้แห้ง...<br>ไม่มีอะไรเกิดขึ้น" },
+            { type: "empty", icon: "🍂", text: "เจอใบไม้แห้ง...<br>ไม่มีอะไรเกิดขึ้น" }
+        ];
+
+        // สุ่มการ์ด
+        cardsData.sort(() => Math.random() - 0.5);
+
+        let currentTurn = 1;
+        let scores = { 1: 0, 2: 0 };
+        const board = document.getElementById("board");
+        
+        // สร้างกระดาน
+        cardsData.forEach((card, index) => {
+            const container = document.createElement("div");
+            container.className = "card-container";
+            
+            const inner = document.createElement("div");
+            inner.className = "card-inner";
+            
+            const front = document.createElement("div");
+            front.className = "card-front";
+            front.innerText = index + 1;
+            
+            const back = document.createElement("div");
+            back.className = "card-back";
+            back.innerText = card.icon;
+
+            inner.appendChild(front);
+            inner.appendChild(back);
+            container.appendChild(inner);
+
+            container.onclick = () => openCard(index, container);
+            board.appendChild(container);
+        });
+
+        // ฟังก์ชันยิงพลุ
+        function shootConfetti() {
+            var duration = 3000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00'] });
+                if (Date.now() < end) { requestAnimationFrame(frame); }
+            }());
+        }
+
+        function openCard(index, cardElement) {
+            if (cardElement.classList.contains("opened")) return;
+            
+            const card = cardsData[index];
+            cardElement.classList.add("opened");
+            cardElement.querySelector('.card-inner').classList.add("is-flipped");
+
+            // หน่วงเวลาให้ดูอนิเมชันพลิกการ์ดจบก่อน
+            setTimeout(() => {
+                if (card.type === "q") {
+                    showQuestion(card);
+                } else if (card.type === "bonus") {
+                    scores[currentTurn] += 1;
+                    updateScoreUI();
+                    shootConfetti();
+                    showAlert(card.icon, card.text, "var(--gold-glow)", "0 0 50px var(--gold-glow)");
+                } else if (card.type === "bomb") {
+                    document.body.classList.add("shake-screen");
+                    setTimeout(() => document.body.classList.remove("shake-screen"), 600);
+                    showAlert(card.icon, card.text, "var(--red-glow)", "0 0 50px var(--red-glow)");
+                } else {
+                    showAlert(card.icon, card.text, "#888", "0 0 30px #888");
+                }
+            }, 600);
+        }
+
+        function showQuestion(data) {
+            document.getElementById("modal-overlay").classList.add("show-modal");
+            document.getElementById("q-icon").innerText = data.icon;
+            document.getElementById("q-title").innerText = "ปริศนา: " + data.title;
+            document.getElementById("q-text").innerText = data.q;
+            
+            const optionsDiv = document.getElementById("q-options");
+            optionsDiv.innerHTML = "";
+            
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "btn-option";
+                btn.innerText = (idx + 1) + ". " + opt;
+                btn.onclick = () => checkAnswer(idx, data.ans);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct) {
+            document.getElementById("modal-overlay").classList.remove("show-modal");
+            if (selected === correct) {
+                scores[currentTurn] += 1;
+                updateScoreUI();
+                shootConfetti();
+                showAlert("🎉", "ตอบถูกต้อง!!<br>รับไปเลย 1 คะแนน", "var(--gold-glow)", "0 0 50px #2ecc71");
+            } else {
+                document.body.classList.add("shake-screen");
+                setTimeout(() => document.body.classList.remove("shake-screen"), 600);
+                showAlert("❌", "เสียใจด้วย!<br>ตอบผิด ไม่ได้คะแนนนะจ๊ะ", "var(--red-glow)", "0 0 50px var(--red-glow)");
+            }
+        }
+
+        function showAlert(icon, text, borderColor, boxShadow) {
+            const alertOverlay = document.getElementById("alert-overlay");
+            const alertBox = document.getElementById("alert-box");
+            
+            alertBox.style.border = `4px solid ${borderColor}`;
+            alertBox.style.boxShadow = boxShadow;
+            document.getElementById("alert-icon").innerText = icon;
+            document.getElementById("alert-text").innerHTML = text;
+            
+            alertOverlay.classList.add("show-modal");
+        }
+
+        function closeAlert() {
+            document.getElementById("alert-overlay").classList.remove("show-modal");
+            switchTurn();
+        }
+
+        function updateScoreUI() {
+            document.getElementById("score-red").innerText = scores[1];
+            document.getElementById("score-blue").innerText = scores[2];
+        }
+
+        function switchTurn() {
+            currentTurn = currentTurn === 1 ? 2 : 1;
+            
+            const boxRed = document.getElementById("box-red");
+            const boxBlue = document.getElementById("box-blue");
+            
+            if (currentTurn === 1) {
+                boxRed.classList.add("active-red");
+                boxBlue.classList.remove("active-blue");
+            } else {
+                boxBlue.classList.add("active-blue");
+                boxRed.classList.remove("active-red");
+            }
+        }
+    </script>
+</body>
+</html>
